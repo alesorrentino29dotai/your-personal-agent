@@ -39,7 +39,15 @@ For multi-user groups, the `id` will be negative (e.g. `-1001234567890`).
 
 ## 3. Configure environment variables
 
-Create or edit `.env` in the project root (it's git-ignored). **Never commit `.env`.**
+First, **create `.env` from the template** (the repo only ships `.env.example` — `.env` itself is git-ignored to keep your secrets local):
+
+```bash
+cd ~/Projects/qwen-agent-cli
+cp .env.example .env
+${EDITOR:-nano} .env
+```
+
+Fill in these three lines (delete or ignore the SMTP block if you only want Telegram):
 
 ```bash
 # Get this from BotFather (step 1)
@@ -52,6 +60,27 @@ QAGENT_TG_DEFAULT_CHAT=123456789
 # Add multiple by separating with commas. Leave empty = deny everyone.
 QAGENT_TG_ALLOWED_CHATS=123456789
 ```
+
+Syntax rules (silent footguns):
+
+- **No quotes** around values — `KEY=abc:def`, not `KEY="abc:def"`
+- **No spaces** around `=` — `KEY=value`, not `KEY = value`
+- One `KEY=value` per line, no `export` keyword (the `set -a` step adds it)
+
+**Verify the values were loaded** before starting the bot:
+
+```bash
+set -a; source .env; set +a
+echo "token len: ${#QAGENT_TG_BOT_TOKEN}  default: $QAGENT_TG_DEFAULT_CHAT  allowed: $QAGENT_TG_ALLOWED_CHATS"
+```
+
+Expected output:
+
+```
+token len: 46  default: 123456789  allowed: 123456789
+```
+
+If `token len: 0` or the IDs are blank, `.env` is missing/typo'd. Fix and re-source before running `qagent bot`.
 
 If multiple people will use the bot, add each chat ID to `QAGENT_TG_ALLOWED_CHATS`, comma-separated.
 
@@ -149,6 +178,8 @@ Add a `~/qagent-data/contacts.json` mapping contact names to their `telegram_cha
 
 | Problem | Likely cause / fix |
 |---------|--------------------|
+| `qagent bot` prints "Telegram bot is not configured" | `.env` doesn't exist or wasn't sourced. Run `cp .env.example .env`, fill it in, then `set -a; source .env; set +a` in the **same shell** before `qagent bot`. |
+| `bash: .env: No such file or directory` | You never copied the template. `cp .env.example .env` first. |
 | `getUpdates` returns 404 / "Not Found" | Token is wrong or already revoked. Generate a new one via BotFather. |
 | `getUpdates` returns `"result": []` | You haven't messaged the bot yet, or another running bot instance is draining updates. Stop other instances and resend a message. |
 | Bot starts but never replies | Your chat ID isn't in `QAGENT_TG_ALLOWED_CHATS`. Check the bot logs. |
