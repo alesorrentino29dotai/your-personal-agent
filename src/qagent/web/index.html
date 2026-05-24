@@ -215,6 +215,95 @@
     #send:disabled { opacity: 0.45; cursor: not-allowed; }
     #send svg { width: 18px; height: 18px; display: block; }
 
+    /* Voice */
+    #mic {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      color: var(--text-dim);
+      display: inline-flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: background 120ms ease, color 120ms ease;
+      background: transparent;
+    }
+    #mic:hover { background: var(--bg-elev); color: var(--text); }
+    #mic svg { width: 18px; height: 18px; display: block; }
+    #mic.recording {
+      color: var(--danger);
+      background: rgba(239, 83, 80, 0.08);
+      position: relative;
+    }
+    #mic.recording::after {
+      content: "";
+      position: absolute;
+      top: 5px; right: 5px;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--danger);
+      box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.6);
+      animation: micpulse 1.1s infinite;
+    }
+    @keyframes micpulse {
+      0%   { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.55); }
+      70%  { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(239, 83, 80, 0.0); }
+      100% { transform: scale(0.9); box-shadow: 0 0 0 0 rgba(239, 83, 80, 0.0); }
+    }
+    .icon-btn.active { color: var(--accent); background: rgba(79, 140, 255, 0.10); }
+    .icon-btn.active:hover { color: var(--accent-hover); }
+
+    .speaking-indicator {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 8px 12px;
+      font-size: 13px;
+      color: var(--text-dim);
+      background: var(--agent-bubble);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .field select {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 15px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      outline: none;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+    .field select:focus { border-color: var(--accent); }
+    .checkbox-row {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 14.5px; color: var(--text);
+      cursor: pointer;
+      text-transform: none;
+      letter-spacing: 0;
+      margin-bottom: 0;
+    }
+    .checkbox-row input[type="checkbox"] {
+      width: 18px; height: 18px;
+      accent-color: var(--accent);
+      margin: 0;
+    }
+    .field-note {
+      margin-top: 8px;
+      font-size: 12.5px;
+      color: var(--text-dim);
+      line-height: 1.4;
+    }
+    .iphone-note {
+      margin-top: 4px;
+      padding: 10px 12px;
+      background: var(--bg-elev-2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 12.5px;
+      color: var(--text-dim);
+      line-height: 1.5;
+    }
+    .iphone-note strong { color: var(--text); font-weight: 600; }
+
     /* Modal */
     .modal-backdrop {
       position: fixed; inset: 0;
@@ -301,6 +390,13 @@
           <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
         </svg>
       </button>
+      <button class="icon-btn" id="speak-toggle" type="button" title="Speak replies" aria-label="Toggle spoken replies" aria-pressed="false">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+          <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+        </svg>
+      </button>
       <button class="icon-btn" id="open-settings" title="Settings" aria-label="Settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <circle cx="12" cy="12" r="3"/>
@@ -326,6 +422,14 @@
           autocapitalize="sentences"
           autocorrect="on"
           spellcheck="true"></textarea>
+        <button type="button" id="mic" aria-label="Voice input" title="Voice input">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="9" y="2" width="6" height="12" rx="3"/>
+            <path d="M5 10v2a7 7 0 0 0 14 0v-2"/>
+            <line x1="12" y1="19" x2="12" y2="23"/>
+            <line x1="8" y1="23" x2="16" y2="23"/>
+          </svg>
+        </button>
         <button type="submit" id="send" aria-label="Send" disabled>
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
             <line x1="12" y1="19" x2="12" y2="5"/>
@@ -347,6 +451,20 @@
         <label for="api-token">API Token (optional)</label>
         <input id="api-token" type="password" placeholder="Bearer token" autocomplete="off" />
       </div>
+      <div class="field" id="voice-field">
+        <label for="voice-select">TTS Voice</label>
+        <select id="voice-select"></select>
+      </div>
+      <div class="field" id="handsfree-field">
+        <label class="checkbox-row" for="handsfree-toggle">
+          <input type="checkbox" id="handsfree-toggle" />
+          <span>Hands-free mode (auto-listen after replies)</span>
+        </label>
+        <p class="field-note">Hands-free works only while this app is visible. Apple does not allow browser tabs to listen in the background; for always-on voice use the Telegram bot.</p>
+      </div>
+      <p class="iphone-note">
+        <strong>Voice on iPhone:</strong> Voice input and spoken replies work in Safari and Chrome on iOS while this tab is open and visible. iOS pauses background tabs, so the mic stops when you switch apps or lock the screen. For background or always-on voice, use the Telegram bot or set up a Siri Shortcut that posts to this agent.
+      </p>
       <div class="modal-actions">
         <button class="btn btn-secondary" id="cancel-settings" type="button">Cancel</button>
         <button class="btn btn-primary" id="save-settings" type="button">Save</button>
@@ -359,6 +477,10 @@
       const LS_SESSION = "qagent_session";
       const LS_TOKEN = "qagent_token";
       const LS_URL = "qagent_url";
+      const LS_SPEAK = "qagent_speak";
+      const LS_HANDSFREE = "qagent_handsfree";
+      const LS_VOICE = "qagent_voice";
+      const DEFAULT_PLACEHOLDER = "Message agent...";
 
       const els = {
         status: document.getElementById("status"),
@@ -374,6 +496,12 @@
         apiToken: document.getElementById("api-token"),
         saveSettings: document.getElementById("save-settings"),
         cancelSettings: document.getElementById("cancel-settings"),
+        mic: document.getElementById("mic"),
+        speakToggle: document.getElementById("speak-toggle"),
+        voiceSelect: document.getElementById("voice-select"),
+        voiceField: document.getElementById("voice-field"),
+        handsfreeToggle: document.getElementById("handsfree-toggle"),
+        handsfreeField: document.getElementById("handsfree-field"),
       };
 
       let sessionId = localStorage.getItem(LS_SESSION) || null;
@@ -470,6 +598,9 @@
       async function send() {
         const text = els.input.value.trim();
         if (!text || busy) return;
+        if (recognition && recognizing) {
+          try { recognition.stop(); } catch (e) {}
+        }
         busy = true;
         addMessage("you", text);
         els.input.value = "";
@@ -501,8 +632,10 @@
             sessionId = data.session_id;
             localStorage.setItem(LS_SESSION, sessionId);
           }
-          addMessage("agent", data.reply || "(empty reply)");
+          const replyText = data.reply || "(empty reply)";
+          addMessage("agent", replyText);
           setStatus("ok");
+          speak(replyText);
         } catch (err) {
           removeTyping();
           addMessage("system", "Network error: " + (err && err.message ? err.message : err));
@@ -537,6 +670,10 @@
       function openSettings() {
         els.apiUrl.value = localStorage.getItem(LS_URL) || "/";
         els.apiToken.value = localStorage.getItem(LS_TOKEN) || "";
+        if (els.handsfreeToggle) els.handsfreeToggle.checked = handsfreeOn();
+        if (els.voiceSelect && ttsSupported()) {
+          loadVoices();
+        }
         els.modal.classList.add("open");
         els.modal.setAttribute("aria-hidden", "false");
         setTimeout(() => els.apiUrl.focus(), 50);
@@ -551,9 +688,189 @@
         localStorage.setItem(LS_URL, url);
         if (token) localStorage.setItem(LS_TOKEN, token);
         else localStorage.removeItem(LS_TOKEN);
+        if (els.handsfreeToggle) {
+          localStorage.setItem(LS_HANDSFREE, els.handsfreeToggle.checked ? "1" : "0");
+        }
+        if (els.voiceSelect) {
+          localStorage.setItem(LS_VOICE, els.voiceSelect.value || "");
+        }
         closeSettings();
         checkHealth();
       }
+
+      let recognition = null;
+      let recognizing = false;
+      let voicesList = [];
+      let speakingEl = null;
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      function ttsSupported() {
+        return typeof window !== "undefined" && "speechSynthesis" in window;
+      }
+      function speakOn() {
+        return localStorage.getItem(LS_SPEAK) === "1";
+      }
+      function handsfreeOn() {
+        return localStorage.getItem(LS_HANDSFREE) === "1";
+      }
+
+      function setupRecognition() {
+        if (!SR) {
+          if (els.mic) els.mic.style.display = "none";
+          return;
+        }
+        try {
+          recognition = new SR();
+          recognition.lang = navigator.language || "en-US";
+          recognition.interimResults = true;
+          recognition.continuous = false;
+          recognition.maxAlternatives = 1;
+          recognition.onstart = () => {
+            recognizing = true;
+            if (els.mic) els.mic.classList.add("recording");
+            els.input.placeholder = "Listening…";
+          };
+          recognition.onend = () => {
+            recognizing = false;
+            if (els.mic) els.mic.classList.remove("recording");
+            els.input.placeholder = DEFAULT_PLACEHOLDER;
+          };
+          recognition.onerror = () => {
+            recognizing = false;
+            if (els.mic) els.mic.classList.remove("recording");
+            els.input.placeholder = DEFAULT_PLACEHOLDER;
+          };
+          recognition.onresult = (event) => {
+            let interim = "";
+            let finalText = "";
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+              const r = event.results[i];
+              if (r.isFinal) finalText += r[0].transcript;
+              else interim += r[0].transcript;
+            }
+            els.input.value = (finalText || interim).trim();
+            autoresize();
+            if (finalText) {
+              try { recognition.stop(); } catch (e) {}
+              send();
+            }
+          };
+        } catch (e) {
+          recognition = null;
+          if (els.mic) els.mic.style.display = "none";
+        }
+      }
+
+      function toggleMic() {
+        if (!recognition) return;
+        if (recognizing) {
+          try { recognition.stop(); } catch (e) {}
+        } else {
+          try {
+            els.input.focus();
+            recognition.start();
+          } catch (e) {}
+        }
+      }
+
+      function refreshSpeakBtn() {
+        if (!els.speakToggle) return;
+        const on = speakOn();
+        els.speakToggle.classList.toggle("active", on);
+        els.speakToggle.setAttribute("aria-pressed", on ? "true" : "false");
+        els.speakToggle.title = on ? "Speak replies: ON" : "Speak replies: OFF";
+      }
+
+      function showSpeakingIndicator(on) {
+        if (on) {
+          if (speakingEl) return;
+          const row = document.createElement("div");
+          row.className = "row agent";
+          row.innerHTML = '<div class="speaking-indicator">🔊 speaking</div>';
+          els.messages.appendChild(row);
+          speakingEl = row;
+          scrollToBottom();
+        } else {
+          if (speakingEl && speakingEl.parentNode) speakingEl.parentNode.removeChild(speakingEl);
+          speakingEl = null;
+        }
+      }
+
+      function loadVoices() {
+        if (!ttsSupported()) return;
+        voicesList = window.speechSynthesis.getVoices() || [];
+        populateVoiceSelect();
+      }
+
+      function populateVoiceSelect() {
+        if (!els.voiceSelect) return;
+        els.voiceSelect.innerHTML = "";
+        const def = document.createElement("option");
+        def.value = "";
+        def.textContent = "System default";
+        els.voiceSelect.appendChild(def);
+        const defaults = voicesList.filter(v => v.default);
+        const others = voicesList.filter(v => !v.default).slice(0, 10);
+        const list = [...defaults, ...others];
+        const saved = localStorage.getItem(LS_VOICE) || "";
+        list.forEach(v => {
+          const opt = document.createElement("option");
+          opt.value = v.name;
+          opt.textContent = v.name + " (" + v.lang + ")" + (v.default ? " — default" : "");
+          if (v.name === saved) opt.selected = true;
+          els.voiceSelect.appendChild(opt);
+        });
+      }
+
+      function speak(text) {
+        if (!ttsSupported()) return;
+        if (!speakOn()) return;
+        if (!text || !text.trim()) return;
+        try {
+          window.speechSynthesis.cancel();
+          const u = new SpeechSynthesisUtterance(text);
+          const wantedName = localStorage.getItem(LS_VOICE) || "";
+          if (wantedName) {
+            const v = voicesList.find(x => x.name === wantedName);
+            if (v) u.voice = v;
+          }
+          u.onstart = () => showSpeakingIndicator(true);
+          u.onend = () => {
+            showSpeakingIndicator(false);
+            if (handsfreeOn() && recognition && !recognizing && !busy) {
+              setTimeout(() => {
+                try { recognition.start(); } catch (e) {}
+              }, 250);
+            }
+          };
+          u.onerror = () => showSpeakingIndicator(false);
+          window.speechSynthesis.speak(u);
+        } catch (e) {}
+      }
+
+      function toggleSpeak() {
+        const next = !speakOn();
+        localStorage.setItem(LS_SPEAK, next ? "1" : "0");
+        if (!next && ttsSupported()) {
+          try { window.speechSynthesis.cancel(); } catch (e) {}
+          showSpeakingIndicator(false);
+        }
+        refreshSpeakBtn();
+      }
+
+      setupRecognition();
+      if (!ttsSupported()) {
+        if (els.speakToggle) els.speakToggle.style.display = "none";
+        if (els.voiceField) els.voiceField.style.display = "none";
+      } else {
+        loadVoices();
+        if (typeof window.speechSynthesis.onvoiceschanged !== "undefined") {
+          window.speechSynthesis.addEventListener("voiceschanged", loadVoices);
+        }
+      }
+      if (els.mic) els.mic.addEventListener("click", toggleMic);
+      if (els.speakToggle) els.speakToggle.addEventListener("click", toggleSpeak);
+      refreshSpeakBtn();
 
       els.composer.addEventListener("submit", (e) => {
         e.preventDefault();

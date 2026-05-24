@@ -102,7 +102,7 @@ qagent serve --port 8765               # start the web app for phone/laptop
 
 ## Use it from your phone
 
-### A. Web app on the same WiFi (zero config)
+### A. Web app on the same WiFi (zero config) — now with voice
 
 ```bash
 qagent serve --bind 0.0.0.0 --port 8765
@@ -111,6 +111,11 @@ qagent serve --bind 0.0.0.0 --port 8765
 - Workstation LAN IP: `hostname -I`
 - iPhone Safari / Android Chrome → `http://<LAN-IP>:8765`
 - **Share → Add to Home Screen** for a PWA-style icon
+- **Mic button** in the composer captures voice (Web Speech API); final transcript auto-sends
+- **Speak toggle** in the header reads replies aloud (browser TTS, voice configurable in Settings)
+- **Hands-free mode** (Settings): after each spoken reply, the mic auto-restarts for the next turn
+
+**Important — Apple sandbox**: the web app's voice loop only runs **while the tab is open and visible**. iOS does not allow browser tabs to listen in the background — that privilege is reserved for Siri. For always-on voice when your phone is locked, use the **Telegram bot** (path C) or the **Siri Shortcuts** (path D).
 
 ### B. Anywhere via Tailscale (recommended for remote use)
 
@@ -347,6 +352,7 @@ The **model lives on your workstation** — your data stays local. Outbound call
 
 | Problem | Fix |
 |---------|-----|
+| Email auth fails on Gmail SMTP with a non-Gmail address | Use your provider's SMTP (e.g. Libero: `smtp.libero.it:465` SSL, or `587` STARTTLS) |
 | `Cannot reach Ollama` | `ollama serve` (or use `deploy/start-agent.sh`) |
 | Web UI loads but `/api/ask` 500s | Cold model load (~30–50 s on first request); retry |
 | Bot doesn't reply | Check your `chat.id` is in `QAGENT_TG_ALLOWED_CHATS` |
@@ -355,6 +361,9 @@ The **model lives on your workstation** — your data stays local. Outbound call
 | iOS Shortcut returns nothing | Check the URL includes your LAN/Tailscale IP and the API token header matches |
 | Phone can't reach LAN URL | Workstation firewall — open port 8765, or use Tailscale |
 | Voice install fails | `sudo apt install libportaudio2 ffmpeg` |
+| Web mic button missing | Browser doesn't expose `SpeechRecognition` (e.g. Firefox); use Chrome or Safari |
+| TTS silent in web UI | iOS Safari may require a tap before first audio; tap the speak toggle once |
+| Web voice stops when tab is in background | iOS limitation — switch to Telegram bot or Siri Shortcut for background voice |
 | CUDA OOM | Stick to 3B; close other GPU apps |
 
 ---
