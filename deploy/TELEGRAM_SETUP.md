@@ -60,7 +60,7 @@ If multiple people will use the bot, add each chat ID to `QAGENT_TG_ALLOWED_CHAT
 ## 4. Run the bot
 
 ```bash
-cd ~/Projects/your-personal-agent
+cd ~/Projects/qwen-agent-cli
 source .venv/bin/activate
 set -a; source .env; set +a       # load .env into the shell
 qagent bot
@@ -110,9 +110,9 @@ After=network.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/Projects/your-personal-agent
-EnvironmentFile=%h/Projects/your-personal-agent/.env
-ExecStart=%h/Projects/your-personal-agent/.venv/bin/qagent bot
+WorkingDirectory=%h/Projects/qwen-agent-cli
+EnvironmentFile=%h/Projects/qwen-agent-cli/.env
+ExecStart=%h/Projects/qwen-agent-cli/.venv/bin/qagent bot
 Restart=on-failure
 RestartSec=5
 

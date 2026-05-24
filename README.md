@@ -85,7 +85,7 @@ ollama pull qwen2.5:3b-instruct        # ~6 GB VRAM, e.g. RTX 3060 laptop
 # or qwen2.5:7b-instruct on a bigger GPU
 
 # 2. Install
-cd ~/Projects/your-personal-agent
+cd ~/Projects/qwen-agent-cli
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[server]"             # CLI + HTTP API + web UI
