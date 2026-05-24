@@ -377,6 +377,59 @@ def voice(
 
 
 @app.command()
+def serve(
+    model: str | None = typer.Option(None, "--model"),
+    root: Path | None = typer.Option(
+        None, "--root", exists=True, file_okay=False, dir_okay=True, resolve_path=True
+    ),
+    allow_shell: bool | None = typer.Option(None, "--allow-shell"),
+    allow_write: bool | None = typer.Option(None, "--allow-write/--no-write"),
+    allow_send: bool | None = typer.Option(None, "--allow-send"),
+    max_steps: int | None = typer.Option(None, "--max-steps", min=1),
+    host: str | None = typer.Option(None, "--host", help="Ollama / provider base URL."),
+    bind: str = typer.Option("0.0.0.0", "--bind", help="HTTP server bind address."),
+    port: int = typer.Option(8765, "--port"),
+    api_token: str | None = typer.Option(
+        None,
+        "--api-token",
+        envvar="QAGENT_API_TOKEN",
+        help="Require Authorization: Bearer <token>. Recommended for non-LAN use.",
+    ),
+) -> None:
+    """Run the HTTP API + web UI so you can use the agent from phone or laptop browser."""
+    from qagent.server import run_server
+
+    cfg = _resolve_options(
+        model, root, allow_shell, allow_write, allow_send, max_steps, host, False
+    )
+    try:
+        check_ollama(resolve_host(cfg.host))
+    except RuntimeError as exc:
+        console.print(f"[yellow]Warning: {exc}[/yellow]")
+        console.print(
+            "[yellow]Server will still start; first /api/ask will fail until "
+            "Ollama is up.[/yellow]"
+        )
+
+    try:
+        run_server(
+            host_bind=bind,
+            port=port,
+            api_token=api_token,
+            model=cfg.model,
+            root=cfg.root,
+            host=resolve_host(cfg.host),
+            allow_shell=cfg.allow_shell,
+            allow_write=cfg.allow_write,
+            allow_send=cfg.allow_send,
+            max_steps=cfg.max_steps,
+        )
+    except RuntimeError as exc:
+        console.print(f"[red]{exc}[/red]")
+        raise typer.Exit(1) from exc
+
+
+@app.command()
 def bot(
     model: str | None = typer.Option(None, "--model"),
     root: Path | None = typer.Option(

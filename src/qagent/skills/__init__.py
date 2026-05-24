@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 from qagent.skills import (
+    calendar,
+    documents,
     drafts,
     email_send,
     notes,
@@ -14,6 +16,8 @@ SKILL_MODULES = [
     drafts,
     web,
     presentations,
+    documents,
+    calendar,
     email_send,
     telegram,
 ]

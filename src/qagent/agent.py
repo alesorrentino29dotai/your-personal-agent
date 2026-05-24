@@ -6,8 +6,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal
 
-from qagent import ollama
+from qagent import ollama as _ollama
 from qagent.parsing import extract_text_tool_calls
+from qagent.providers import create_provider
+from qagent.providers.base import LLMProvider
 from qagent.tools import ToolRunner
 
 SYSTEM_PROMPT = """You are a personal local assistant with tools. The workspace root is your sandbox.
@@ -75,6 +77,8 @@ class Agent:
         host: str,
         allow_send: bool = False,
         on_event: EventCallback | None = None,
+        provider: LLMProvider | None = None,
+        provider_name: str = "ollama",
     ) -> None:
         self.model = model
         self.root = root.resolve()
@@ -84,6 +88,9 @@ class Agent:
         self.max_steps = max_steps
         self.host = host
         self.on_event = on_event
+        self.provider: LLMProvider = provider or create_provider(
+            provider_name, model=model, host=host
+        )
         self._runner = ToolRunner(
             root,
             allow_shell=allow_shell,
@@ -140,12 +147,7 @@ class Agent:
                     detail=f"step {step + 1}/{self.max_steps} — calling model",
                 )
             )
-            response = ollama.chat(
-                self.messages,
-                model=self.model,
-                tools=tools,
-                host=self.host,
-            )
+            response = self.provider.chat(self.messages, tools=tools)
             message = response.get("message") or {}
             content = (message.get("content") or "").strip()
             calls = _native_tool_calls(message)

@@ -1,0 +1,586 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+  <meta name="theme-color" content="#0b0d10" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>Personal Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; }
+    :root {
+      --bg: #0b0d10;
+      --bg-elev: #14181d;
+      --bg-elev-2: #1c2128;
+      --border: #232a33;
+      --border-strong: #2f3742;
+      --text: #e6e8eb;
+      --text-dim: #9aa3ad;
+      --accent: #4f8cff;
+      --accent-hover: #3a78ee;
+      --you-bubble: #2d6cdf;
+      --you-text: #ffffff;
+      --agent-bubble: #1c2128;
+      --agent-text: #e6e8eb;
+      --system-text: #6b7682;
+      --danger: #ef5350;
+      --ok: #2ecc71;
+      --warn: #f5a623;
+      --safe-bottom: env(safe-area-inset-bottom, 0px);
+      --safe-top: env(safe-area-inset-top, 0px);
+      --safe-left: env(safe-area-inset-left, 0px);
+      --safe-right: env(safe-area-inset-right, 0px);
+    }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+        "Helvetica Neue", Arial, "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
+      font-size: 16px;
+      line-height: 1.45;
+      -webkit-font-smoothing: antialiased;
+      -webkit-text-size-adjust: 100%;
+      overscroll-behavior-y: none;
+    }
+    button {
+      font: inherit;
+      color: inherit;
+      background: none;
+      border: none;
+      cursor: pointer;
+    }
+    textarea {
+      font: inherit;
+      color: inherit;
+      background: none;
+      border: none;
+      outline: none;
+      resize: none;
+    }
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100dvh;
+      max-width: 860px;
+      margin: 0 auto;
+      background: var(--bg);
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: calc(10px + var(--safe-top)) 14px 10px;
+      padding-left: calc(14px + var(--safe-left));
+      padding-right: calc(14px + var(--safe-right));
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-elev);
+      position: sticky; top: 0; z-index: 5;
+    }
+    .title {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: 0.1px;
+      display: flex; align-items: center; gap: 8px;
+      flex: 1;
+      min-width: 0;
+    }
+    .dot {
+      width: 9px; height: 9px; border-radius: 50%;
+      background: var(--text-dim);
+      box-shadow: 0 0 0 0 rgba(46,204,113,0.0);
+      transition: background 200ms ease, box-shadow 400ms ease;
+      flex-shrink: 0;
+    }
+    .dot.ok { background: var(--ok); box-shadow: 0 0 0 4px rgba(46,204,113,0.15); }
+    .dot.bad { background: var(--danger); box-shadow: 0 0 0 4px rgba(239,83,80,0.15); }
+    .icon-btn {
+      width: 36px; height: 36px;
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: 10px;
+      color: var(--text-dim);
+      transition: background 120ms ease, color 120ms ease;
+    }
+    .icon-btn:hover, .icon-btn:active { background: var(--bg-elev-2); color: var(--text); }
+    .icon-btn svg { width: 20px; height: 20px; display: block; }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+      padding: 14px 14px 8px;
+      padding-left: calc(14px + var(--safe-left));
+      padding-right: calc(14px + var(--safe-right));
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+    .row {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .row.you { justify-content: flex-end; }
+    .row.agent { justify-content: flex-start; }
+    .row.system { justify-content: center; }
+    .bubble {
+      max-width: min(78%, 640px);
+      padding: 10px 14px;
+      border-radius: 18px;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-wrap: anywhere;
+      font-size: 15.5px;
+      line-height: 1.5;
+      box-shadow: 0 1px 0 rgba(0,0,0,0.15);
+    }
+    .you .bubble {
+      background: var(--you-bubble);
+      color: var(--you-text);
+      border-bottom-right-radius: 6px;
+    }
+    .agent .bubble {
+      background: var(--agent-bubble);
+      color: var(--agent-text);
+      border: 1px solid var(--border);
+      border-bottom-left-radius: 6px;
+    }
+    .system .bubble {
+      background: transparent;
+      color: var(--system-text);
+      font-size: 13px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px dashed var(--border-strong);
+      max-width: 92%;
+      text-align: center;
+    }
+
+    .typing {
+      display: inline-flex; align-items: center; gap: 6px;
+      padding: 12px 14px;
+    }
+    .typing span {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: var(--text-dim);
+      animation: blink 1.2s infinite ease-in-out both;
+    }
+    .typing span:nth-child(2) { animation-delay: 0.2s; }
+    .typing span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink {
+      0%, 80%, 100% { opacity: 0.2; transform: translateY(0); }
+      40% { opacity: 1; transform: translateY(-2px); }
+    }
+
+    footer {
+      border-top: 1px solid var(--border);
+      background: var(--bg-elev);
+      padding: 10px 12px calc(10px + var(--safe-bottom));
+      padding-left: calc(12px + var(--safe-left));
+      padding-right: calc(12px + var(--safe-right));
+    }
+    .composer {
+      display: flex;
+      align-items: flex-end;
+      gap: 8px;
+      background: var(--bg-elev-2);
+      border: 1px solid var(--border-strong);
+      border-radius: 22px;
+      padding: 8px 8px 8px 14px;
+      transition: border-color 120ms ease;
+    }
+    .composer:focus-within { border-color: var(--accent); }
+    #input {
+      flex: 1;
+      min-height: 24px;
+      max-height: 30vh;
+      padding: 4px 0;
+      font-size: 16px;
+      line-height: 1.4;
+      background: transparent;
+      color: var(--text);
+    }
+    #input::placeholder { color: var(--text-dim); }
+    #send {
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--accent);
+      color: #fff;
+      display: inline-flex; align-items: center; justify-content: center;
+      transition: background 120ms ease, opacity 120ms ease, transform 80ms ease;
+      flex-shrink: 0;
+    }
+    #send:hover { background: var(--accent-hover); }
+    #send:active { transform: scale(0.94); }
+    #send:disabled { opacity: 0.45; cursor: not-allowed; }
+    #send svg { width: 18px; height: 18px; display: block; }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed; inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      display: none;
+      align-items: center; justify-content: center;
+      z-index: 50;
+      padding: 16px;
+      padding-top: calc(16px + var(--safe-top));
+      padding-bottom: calc(16px + var(--safe-bottom));
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      width: 100%; max-width: 420px;
+      background: var(--bg-elev);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .modal h2 {
+      font-size: 17px; font-weight: 600; margin-bottom: 14px;
+    }
+    .field { margin-bottom: 14px; }
+    .field label {
+      display: block; font-size: 12px;
+      color: var(--text-dim);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .field input {
+      width: 100%;
+      padding: 10px 12px;
+      font-size: 15px;
+      background: var(--bg);
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      border-radius: 10px;
+      outline: none;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+    .field input:focus { border-color: var(--accent); }
+    .modal-actions {
+      display: flex; gap: 10px; justify-content: flex-end; margin-top: 8px;
+    }
+    .btn {
+      padding: 9px 16px;
+      border-radius: 10px;
+      font-size: 14.5px;
+      font-weight: 500;
+      transition: background 120ms ease;
+    }
+    .btn-primary {
+      background: var(--accent); color: #fff;
+    }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-secondary {
+      background: var(--bg-elev-2);
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+    }
+    .btn-secondary:hover { background: var(--border); }
+
+    .empty {
+      color: var(--text-dim);
+      text-align: center;
+      padding: 40px 16px;
+      font-size: 15px;
+    }
+    .empty strong { color: var(--text); font-weight: 600; }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header>
+      <div class="title">
+        <span class="dot" id="status" title="Disconnected"></span>
+        <span>Personal Agent</span>
+      </div>
+      <button class="icon-btn" id="new-chat" title="New chat" aria-label="New chat">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 20h9"/>
+          <path d="M16.5 3.5a2.121 2.121 0 1 1 3 3L7 19l-4 1 1-4 12.5-12.5z"/>
+        </svg>
+      </button>
+      <button class="icon-btn" id="open-settings" title="Settings" aria-label="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h0a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h0a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v0a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </header>
+
+    <main id="messages">
+      <div class="empty" id="empty">
+        <strong>Personal Agent</strong><br/>
+        Ask anything to get started.
+      </div>
+    </main>
+
+    <footer>
+      <form class="composer" id="composer" autocomplete="off">
+        <textarea
+          id="input"
+          rows="1"
+          placeholder="Message agent..."
+          enterkeyhint="send"
+          autocapitalize="sentences"
+          autocorrect="on"
+          spellcheck="true"></textarea>
+        <button type="submit" id="send" aria-label="Send" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="12" y1="19" x2="12" y2="5"/>
+            <polyline points="5 12 12 5 19 12"/>
+          </svg>
+        </button>
+      </form>
+    </footer>
+  </div>
+
+  <div class="modal-backdrop" id="settings-modal" aria-hidden="true">
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+      <h2 id="settings-title">Settings</h2>
+      <div class="field">
+        <label for="api-url">API URL</label>
+        <input id="api-url" type="text" placeholder="/" inputmode="url" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label for="api-token">API Token (optional)</label>
+        <input id="api-token" type="password" placeholder="Bearer token" autocomplete="off" />
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" id="cancel-settings" type="button">Cancel</button>
+        <button class="btn btn-primary" id="save-settings" type="button">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      const LS_SESSION = "qagent_session";
+      const LS_TOKEN = "qagent_token";
+      const LS_URL = "qagent_url";
+
+      const els = {
+        status: document.getElementById("status"),
+        messages: document.getElementById("messages"),
+        empty: document.getElementById("empty"),
+        composer: document.getElementById("composer"),
+        input: document.getElementById("input"),
+        send: document.getElementById("send"),
+        newChat: document.getElementById("new-chat"),
+        openSettings: document.getElementById("open-settings"),
+        modal: document.getElementById("settings-modal"),
+        apiUrl: document.getElementById("api-url"),
+        apiToken: document.getElementById("api-token"),
+        saveSettings: document.getElementById("save-settings"),
+        cancelSettings: document.getElementById("cancel-settings"),
+      };
+
+      let sessionId = localStorage.getItem(LS_SESSION) || null;
+      let busy = false;
+      let typingEl = null;
+
+      function getApiBase() {
+        const raw = (localStorage.getItem(LS_URL) || "/").trim();
+        if (!raw) return "/";
+        return raw.endsWith("/") ? raw.slice(0, -1) : raw;
+      }
+      function getToken() {
+        return localStorage.getItem(LS_TOKEN) || "";
+      }
+      function authHeaders() {
+        const t = getToken();
+        return t ? { Authorization: "Bearer " + t } : {};
+      }
+      function apiUrl(path) {
+        const base = getApiBase();
+        if (!base || base === "" || base === "/") return path;
+        return base + path;
+      }
+
+      function scrollToBottom(smooth = true) {
+        const m = els.messages;
+        m.scrollTo({ top: m.scrollHeight, behavior: smooth ? "smooth" : "auto" });
+      }
+
+      function hideEmpty() {
+        if (els.empty && els.empty.parentNode) els.empty.remove();
+      }
+
+      function addMessage(role, text) {
+        hideEmpty();
+        const row = document.createElement("div");
+        row.className = "row " + role;
+        const bubble = document.createElement("div");
+        bubble.className = "bubble";
+        bubble.textContent = text;
+        row.appendChild(bubble);
+        els.messages.appendChild(row);
+        scrollToBottom();
+        return row;
+      }
+
+      function showTyping() {
+        hideEmpty();
+        const row = document.createElement("div");
+        row.className = "row agent";
+        row.innerHTML = `
+          <div class="bubble" style="padding:0;">
+            <div class="typing"><span></span><span></span><span></span></div>
+          </div>`;
+        els.messages.appendChild(row);
+        scrollToBottom();
+        return row;
+      }
+
+      function removeTyping() {
+        if (typingEl && typingEl.parentNode) typingEl.parentNode.removeChild(typingEl);
+        typingEl = null;
+      }
+
+      function setStatus(state) {
+        els.status.classList.remove("ok", "bad");
+        if (state === "ok") {
+          els.status.classList.add("ok");
+          els.status.title = "Connected";
+        } else if (state === "bad") {
+          els.status.classList.add("bad");
+          els.status.title = "Disconnected";
+        } else {
+          els.status.title = "Checking...";
+        }
+      }
+
+      async function checkHealth() {
+        try {
+          const res = await fetch(apiUrl("/api/health"), { headers: authHeaders() });
+          setStatus(res.ok ? "ok" : "bad");
+        } catch {
+          setStatus("bad");
+        }
+      }
+
+      function autoresize() {
+        const ta = els.input;
+        ta.style.height = "auto";
+        ta.style.height = Math.min(ta.scrollHeight, window.innerHeight * 0.3) + "px";
+        els.send.disabled = busy || !ta.value.trim();
+      }
+
+      async function send() {
+        const text = els.input.value.trim();
+        if (!text || busy) return;
+        busy = true;
+        addMessage("you", text);
+        els.input.value = "";
+        autoresize();
+        els.send.disabled = true;
+        typingEl = showTyping();
+
+        try {
+          const body = { message: text };
+          if (sessionId) body.session_id = sessionId;
+          const res = await fetch(apiUrl("/api/ask"), {
+            method: "POST",
+            headers: { "Content-Type": "application/json", ...authHeaders() },
+            body: JSON.stringify(body),
+          });
+          removeTyping();
+          if (!res.ok) {
+            let detail = "HTTP " + res.status;
+            try {
+              const j = await res.json();
+              if (j && j.detail) detail = j.detail;
+            } catch {}
+            addMessage("system", "Error: " + detail);
+            setStatus("bad");
+            return;
+          }
+          const data = await res.json();
+          if (data.session_id) {
+            sessionId = data.session_id;
+            localStorage.setItem(LS_SESSION, sessionId);
+          }
+          addMessage("agent", data.reply || "(empty reply)");
+          setStatus("ok");
+        } catch (err) {
+          removeTyping();
+          addMessage("system", "Network error: " + (err && err.message ? err.message : err));
+          setStatus("bad");
+        } finally {
+          busy = false;
+          autoresize();
+          els.input.focus();
+        }
+      }
+
+      async function newChat() {
+        if (sessionId) {
+          try {
+            await fetch(apiUrl("/api/reset"), {
+              method: "POST",
+              headers: { "Content-Type": "application/json", ...authHeaders() },
+              body: JSON.stringify({ message: "", session_id: sessionId }),
+            });
+          } catch {}
+        }
+        sessionId = null;
+        localStorage.removeItem(LS_SESSION);
+        els.messages.innerHTML = "";
+        const empty = document.createElement("div");
+        empty.className = "empty";
+        empty.id = "empty";
+        empty.innerHTML = "<strong>New conversation</strong><br/>Ask anything to get started.";
+        els.messages.appendChild(empty);
+      }
+
+      function openSettings() {
+        els.apiUrl.value = localStorage.getItem(LS_URL) || "/";
+        els.apiToken.value = localStorage.getItem(LS_TOKEN) || "";
+        els.modal.classList.add("open");
+        els.modal.setAttribute("aria-hidden", "false");
+        setTimeout(() => els.apiUrl.focus(), 50);
+      }
+      function closeSettings() {
+        els.modal.classList.remove("open");
+        els.modal.setAttribute("aria-hidden", "true");
+      }
+      function saveSettings() {
+        const url = els.apiUrl.value.trim() || "/";
+        const token = els.apiToken.value.trim();
+        localStorage.setItem(LS_URL, url);
+        if (token) localStorage.setItem(LS_TOKEN, token);
+        else localStorage.removeItem(LS_TOKEN);
+        closeSettings();
+        checkHealth();
+      }
+
+      els.composer.addEventListener("submit", (e) => {
+        e.preventDefault();
+        send();
+      });
+      els.input.addEventListener("input", autoresize);
+      els.input.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" && !e.shiftKey && !e.isComposing) {
+          e.preventDefault();
+          send();
+        }
+      });
+      els.newChat.addEventListener("click", newChat);
+      els.openSettings.addEventListener("click", openSettings);
+      els.saveSettings.addEventListener("click", saveSettings);
+      els.cancelSettings.addEventListener("click", closeSettings);
+      els.modal.addEventListener("click", (e) => {
+        if (e.target === els.modal) closeSettings();
+      });
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape" && els.modal.classList.contains("open")) closeSettings();
+      });
+
+      autoresize();
+      checkHealth();
+      setInterval(checkHealth, 30000);
+    })();
+  </script>
+</body>
+</html>

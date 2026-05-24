@@ -1,7 +1,7 @@
 [project]
-name = "qwen-agent-cli"
-version = "0.2.0"
-description = "Personal local agent with Qwen2.5 (Ollama): files, web, drafts, slides, voice, Telegram"
+name = "your-personal-agent"
+version = "0.3.0"
+description = "Your personal Agent is here! A local AI assistant (Qwen / OpenAI-compat) reachable from laptop and phone."
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
@@ -11,7 +11,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-slides = ["python-pptx>=0.6"]
+server = ["fastapi>=0.110", "uvicorn[standard]>=0.27"]
+docs = ["python-docx>=1.1", "python-pptx>=0.6"]
 voice = [
   "sounddevice>=0.4",
   "numpy>=1.24",
@@ -20,6 +21,9 @@ voice = [
   "simpleaudio>=1.0; platform_system != 'Windows'",
 ]
 all = [
+  "fastapi>=0.110",
+  "uvicorn[standard]>=0.27",
+  "python-docx>=1.1",
   "python-pptx>=0.6",
   "sounddevice>=0.4",
   "numpy>=1.24",
@@ -37,3 +41,6 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+qagent = ["web/*"]

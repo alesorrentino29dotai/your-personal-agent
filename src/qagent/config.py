@@ -8,6 +8,7 @@ from pathlib import Path
 @dataclass
 class AgentConfig:
     model: str = "qwen2.5:3b-instruct"
+    provider: str = "ollama"
     root: Path = field(default_factory=Path.cwd)
     allow_shell: bool = False
     allow_write: bool = True
@@ -31,6 +32,8 @@ def load_config(start: Path | None = None) -> AgentConfig:
             continue
         if isinstance(data.get("model"), str):
             cfg.model = data["model"]
+        if isinstance(data.get("provider"), str):
+            cfg.provider = data["provider"]
         if isinstance(data.get("root"), str):
             cfg.root = Path(data["root"]).expanduser()
         if isinstance(data.get("allow_shell"), bool):
