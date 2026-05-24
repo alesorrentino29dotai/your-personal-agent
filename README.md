@@ -132,6 +132,8 @@ qagent serve --bind 0.0.0.0 --port 8765
 5. Open Telegram on your iPhone → message the bot OR **tap the mic icon and send a voice note**.
    The bot transcribes with Whisper, runs the agent, replies.
 
+Full walkthrough including systemd auto-start → [`deploy/TELEGRAM_SETUP.md`](deploy/TELEGRAM_SETUP.md)
+
 ### D. iPhone voice actions (Siri Shortcuts)
 
 Four ready-made Siri Shortcuts turn your voice into native iOS actions:
