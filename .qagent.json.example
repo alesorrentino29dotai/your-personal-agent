@@ -1,0 +1,8 @@
+{
+  "model": "qwen2.5-coder:7b-instruct",
+  "root": ".",
+  "allow_shell": false,
+  "allow_write": true,
+  "max_steps": 12,
+  "verbose": true
+}
