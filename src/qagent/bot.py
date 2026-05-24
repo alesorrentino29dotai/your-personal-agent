@@ -1,15 +1,69 @@
 from __future__ import annotations
 
 import os
+import tempfile
 import time
 from pathlib import Path
 
 import httpx
+import httpx as _httpx
 
 from qagent.agent import Agent
 from qagent.skills import telegram as tg
 
+try:
+    from faster_whisper import WhisperModel
+
+    _HAS_WHISPER = True
+except ImportError:
+    _HAS_WHISPER = False
+
 _TG_API_BASE = "https://api.telegram.org"
+
+_WHISPER_MODEL = None
+
+
+def _get_whisper():
+    global _WHISPER_MODEL
+    if not _HAS_WHISPER:
+        return None
+    if _WHISPER_MODEL is None:
+        _WHISPER_MODEL = WhisperModel("base", device="cpu", compute_type="int8")
+    return _WHISPER_MODEL
+
+
+def _download_telegram_file(token: str, file_id: str) -> bytes | None:
+    """Download a Telegram file by file_id. Returns bytes or None."""
+    try:
+        with _httpx.Client(timeout=30) as client:
+            r = client.get(
+                f"https://api.telegram.org/bot{token}/getFile",
+                params={"file_id": file_id},
+            )
+            r.raise_for_status()
+            path = r.json().get("result", {}).get("file_path")
+            if not path:
+                return None
+            r2 = client.get(f"https://api.telegram.org/file/bot{token}/{path}")
+            r2.raise_for_status()
+            return r2.content
+    except Exception:
+        return None
+
+
+def _transcribe_voice(audio_bytes: bytes) -> str | None:
+    model = _get_whisper()
+    if model is None:
+        return None
+    try:
+        with tempfile.NamedTemporaryFile(suffix=".ogg", delete=False) as f:
+            f.write(audio_bytes)
+            path = f.name
+        segments, _ = model.transcribe(path, beam_size=1)
+        text = " ".join(seg.text.strip() for seg in segments)
+        return text.strip() or None
+    except Exception:
+        return None
 
 
 def _send_chat_action(chat_id: int, action: str = "typing") -> None:
@@ -84,16 +138,49 @@ def run_bot(
 
                 message = update.get("message") or {}
                 text = message.get("text")
+                voice = message.get("voice") or message.get("audio")
                 chat = message.get("chat") or {}
                 chat_id = chat.get("id")
 
-                if not isinstance(text, str) or not isinstance(chat_id, int):
+                if not isinstance(chat_id, int):
                     continue
 
                 if chat_id not in tg.allowed_chat_ids():
                     if chat_id not in warned_chats:
                         warned_chats.add(chat_id)
                         print(f"Ignoring message from disallowed chat {chat_id}")
+                    continue
+
+                if voice and not isinstance(text, str):
+                    token = os.environ.get("QAGENT_TG_BOT_TOKEN", "").strip()
+                    file_id = voice.get("file_id") if isinstance(voice, dict) else None
+                    if not _HAS_WHISPER:
+                        tg.send_telegram(
+                            "Voice messages need faster-whisper. "
+                            "Install: pip install -e '.[voice]'",
+                            chat=str(chat_id),
+                        )
+                        continue
+                    _send_chat_action(chat_id, "typing")
+                    audio = (
+                        _download_telegram_file(token, file_id) if file_id else None
+                    )
+                    if not audio:
+                        tg.send_telegram(
+                            "Could not download voice message.",
+                            chat=str(chat_id),
+                        )
+                        continue
+                    text = _transcribe_voice(audio)
+                    if not text:
+                        tg.send_telegram(
+                            "Could not transcribe voice message.",
+                            chat=str(chat_id),
+                        )
+                        continue
+                    tg.send_telegram(f'🎙 "{text}"', chat=str(chat_id))
+
+                if not isinstance(text, str):
                     continue
 
                 _send_chat_action(chat_id, "typing")

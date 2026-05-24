@@ -23,9 +23,13 @@ if BaseModel is not None:
 
     class ResetBody(BaseModel):
         session_id: Optional[str] = None
+
+    class IntentBody(BaseModel):
+        message: str
 else:
     AskBody = None
     ResetBody = None
+    IntentBody = None
 
 
 def _new_session_id() -> str:
@@ -101,6 +105,65 @@ def build_app(
             SESSIONS[body.session_id].reset()
             return {"ok": True}
         return {"ok": False, "error": "unknown session_id"}
+
+    from qagent.providers import create_provider
+    intent_provider = create_provider("ollama", model=model, host=host)
+
+    def _intent_handler(parser_fn, body, request, needs_contacts: bool = True):
+        if not _check_auth(request.headers.get("authorization"), api_token):
+            raise HTTPException(401, "Unauthorized")
+        from qagent import intents
+        contacts = intents.load_contacts() if needs_contacts else None
+        try:
+            if needs_contacts:
+                result = parser_fn(intent_provider, body.message, contacts)
+            else:
+                result = parser_fn(intent_provider, body.message)
+        except Exception as exc:
+            raise HTTPException(500, f"Intent parser error: {exc}")
+        return result
+
+    @app.post("/api/intent/telegram")
+    async def intent_telegram(body: IntentBody, request: Request):
+        from qagent import intents
+        return _intent_handler(intents.parse_telegram, body, request)
+
+    @app.post("/api/intent/telegram/send")
+    async def intent_telegram_send(body: IntentBody, request: Request):
+        from qagent import intents
+        from qagent.skills import telegram as tg
+        parsed = _intent_handler(intents.parse_telegram, body, request)
+        if not parsed.get("ok"):
+            return parsed
+        chat_id = parsed.get("chat_id")
+        if not chat_id:
+            return {
+                "ok": False,
+                "error": (
+                    f"No telegram_chat_id for contact {parsed.get('contact')!r}. "
+                    "Add it to ~/qagent-data/contacts.json."
+                ),
+                **parsed,
+            }
+        send_result = tg.send_telegram(parsed["message"], chat=str(chat_id))
+        parsed["send_result"] = send_result
+        parsed["sent"] = send_result.lower().startswith("telegram message sent")
+        return parsed
+
+    @app.post("/api/intent/call")
+    async def intent_call(body: IntentBody, request: Request):
+        from qagent import intents
+        return _intent_handler(intents.parse_call, body, request)
+
+    @app.post("/api/intent/sms")
+    async def intent_sms(body: IntentBody, request: Request):
+        from qagent import intents
+        return _intent_handler(intents.parse_sms, body, request)
+
+    @app.post("/api/intent/calendar")
+    async def intent_calendar(body: IntentBody, request: Request):
+        from qagent import intents
+        return _intent_handler(intents.parse_calendar, body, request, needs_contacts=False)
 
     if WEB_DIR.is_dir():
         app.mount("/", StaticFiles(directory=str(WEB_DIR), html=True), name="web")
